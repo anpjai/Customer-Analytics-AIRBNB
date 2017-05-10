@@ -1,0 +1,111 @@
+---
+title: "EDA-AirBNB"
+output: html_document
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(ggplot2)
+require(plotly)
+```
+
+#Checking Missing values
+```{r Helper_Functions,echo=FALSE}
+Missing = function(df){
+  mresult=data.frame()
+  for(each in colnames(df))
+  {
+    missingVal=sum(is.na(df[each]))
+    data = data.frame(each,missingVal*100/nrow(df),nrow(unique(df[each])))
+    mresult = rbind(mresult,data)
+  }
+  colnames(mresult)=c("Column Name","% Missing Values","# Unique Values")
+  return(mresult)
+}
+
+PreProcess = function(train){
+train$Booking=ifelse(train$country_destination=="NDF",0,1)
+train$Native=as.factor(ifelse(train$language=="en","English","Non_english"))
+train$US_NONUS=ifelse(train$country_destination=="NDF",NaN,ifelse(train$country_destination=="US","US","NON-US"))
+train$US_NONUS=as.factor(train$US_NONUS)
+train$Booking=as.factor(train$Booking)
+#Fixing age
+ifelse(train$age>100 | train$age<15,NaN,train$age)
+train$AgeFac=as.factor(cut(train$age,seq(from = 0, to = 100, by = 20),include.lowest = TRUE))  
+  return(train)
+}
+
+```
+
+```{r summary,echo=FALSE}
+train=read.csv("train.csv",na.strings=c("","NA"))
+str(train)
+
+Missing(train)
+train=PreProcess(train)
+train_dest=train[which(train$Booking==1),]
+#Bin age into buckets
+
+```
+#Plot of gender
+```{r gender , echo=FALSE}
+
+ b=ggplot(data=train,aes(gender,fill=gender)) + ggtitle("Distribution of Gender")
+ p1=b+geom_bar()
+ ggplotly(p1)
+
+
+b=ggplot(data=train,aes(gender,..count..)) + ggtitle("Gender vs Booking")
+p2=b+geom_bar(aes(fill = train$Booking),position = "dodge")
+ggplotly(p2)
+```
+
+#Plot of age
+```{r age , echo=FALSE}
+#Age has some noisy data like age >100 and age <15.We should replace such data with -1 or NA so that we can treat this data as missing data.
+summary(train$age) 
+
+
+y2=ggplot(train, aes(x = age)) +ggtitle("Distribution of Age")+
+  geom_histogram(aes(y = ..count..), binwidth = 10,fill="blue") +
+  scale_x_continuous(name = "Distribution of Age") +
+  scale_y_continuous(name = "Count")+labs(fill = "Booking") 
+ggplotly(y2)
+
+b=ggplot(data=train,aes(AgeFac,..count..)) + ggtitle("Age vs Booking")
+p2=b+geom_bar(aes(fill = train$Booking))+labs(fill = "Booking") 
+ggplotly(p2)
+
+b=ggplot(data=train_dest,aes(AgeFac,..count..)) + ggtitle("Age vs DESTINATION")
+p2=b+geom_bar(aes(fill = train_dest$US_NONUS),position = "dodge")+labs(fill = "DESTINATION") 
+ggplotly(p2)
+
+```
+#Plot of signup_method
+```{r signup , echo=FALSE}
+
+summary(train$signup_method) 
+
+b=ggplot(data=train,aes(signup_method,..count..)) + ggtitle("Signup_Method vs Booking")
+p2=b+geom_bar(aes(fill = train$Booking))+labs(fill = "Booking") 
+ggplotly(p2)
+
+b=ggplot(data=train_dest,aes(signup_method,..count..)) + ggtitle("Signup_Method vs US-NONUS")
+p2=b+geom_bar(aes(fill = train_dest$US_NONUS),position="dodge")+labs(fill = "DESTINATION") 
+ggplotly(p2)
+
+
+#Plot of language
+```{r signup_flow , echo=FALSE}
+#Age has some noisy data like age >100 and age <15.We should replace such data with -1 or NA so that we can treat this data as missing data.
+summary(train$language) 
+
+b=ggplot(data=train,aes(language,..count..)) + ggtitle("language vs Booking")
+p2=b+geom_bar(aes(fill=Booking),position = "dodge")+labs(fill = "Booking") 
+ggplotly(p2)
+
+b=ggplot(data=train_dest,aes(language,percent)) + ggtitle("Signup_Method vs US-NONUS")
+p2=b+geom_bar(aes(fill = train_dest$US_NONUS),position="dodge")+labs(fill = "DESTINATION") 
+ggplotly(p2)
+
